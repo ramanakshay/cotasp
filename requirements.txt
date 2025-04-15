@@ -1,0 +1,4 @@
+git+https://github.com/Farama-Foundation/Metaworld.git@master#egg=metaworld
+gymnasium
+"gymnasium[other]"
+hydra-core

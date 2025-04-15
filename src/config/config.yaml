@@ -1,0 +1,25 @@
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+# disable hydra logging
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+# wandb config
+wandb:
+    project: cotasp
+
+# system
+system:
+    seed: 42
+
+# continual world config
+environment:
+    seq: cw10
+    type: deterministic
+    normalize_reward: True
+
