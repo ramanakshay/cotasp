@@ -1,5 +1,5 @@
 import numpy as np
-
+from agent.base import TaskAgent
 
 class RandomAgent(TaskAgent):
     def __init__(self, observation_space, action_space, config):

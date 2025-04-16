@@ -141,9 +141,9 @@ class ContinualWorld:
             env = MT50.train_classes[name]()
             env.seed(self.seed)
             env = RandomizationWrapper(env, self.get_subtasks(name), self.type)
-            env.name = name
             env = TimeLimit(env, META_WORLD_TIME_HORIZON)
         env = gym.wrappers.ClipAction(env)
+        env.name = name
         # if normalize_reward:
         #     env = RescaleReward(env, reward_scale=1.0 / META_WORLD_TIME_HORIZON)
         return env
