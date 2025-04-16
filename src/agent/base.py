@@ -15,15 +15,14 @@ class TaskAgent:
         '''
         raise NotImplementedError('Not implemented `end_task` method for agent.')
 
-    def update(self, batch, id = None):
+    def update(self, batch, id=None):
         '''
             Update agent from a batch of experiences
         '''
         raise NotImplementedError('Not implemented `update` method for agent.')
 
-    def sample_action(self, obs, id = None):
+    def sample_action(self, obs, id=None):
         '''
             Given task-id and current observation, predict action
         '''
         raise NotImplementedError('Not implemented `sample_action` method for agent.')
-

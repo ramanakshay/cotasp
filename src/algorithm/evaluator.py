@@ -38,8 +38,7 @@ class TaskEvaluator:
                 done = False
                 obs, info = env.reset()
                 while not done:
-                    action = self.agent.sample_action(obs,
-                                                      id if self.config.is_task_aware else None)
+                    action = self.agent.sample_action(obs, id)
                     action = np.asarray(action, dtype=np.float32).flatten()
                     obs, reward, terminated, truncated, info = env.step(action)
                     done = terminated or truncated

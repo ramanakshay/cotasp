@@ -23,11 +23,9 @@ class TaskTrainer:
         print(f'Learning on task {id}: {task} for {max_steps} steps')
         env = self.env.get_single_env(task)
         self.replay_buffer.reset()
+
         # start task
-        if is_task_aware:
-            self.agent.start_task(id, hint)
-        else:
-            id = None
+        self.agent.start_task(id, hint)
 
         obs, info = env.reset()  # Reset environment
         for i in range(max_steps):
@@ -38,7 +36,7 @@ class TaskTrainer:
                     action = self.env.action_space.sample()
                 else:
                     # choose random previous task (uniform prev strategy)
-                    rand_id = np.random.choice(id) if is_task_aware else None
+                    rand_id = np.random.choice(id)
                     action = agent.sample_action(obs, rand_id)
                     action = np.asarray(action, dtype=np.float32).flatten()
             else:
@@ -63,17 +61,15 @@ class TaskTrainer:
                     batch = self.replay_buffer.sample()
                     update_info = self.agent.update(batch, id)
 
-            #eval
+            # evaluate
             if i % self.config.eval_interval == 0:
                 stats = self.evaluator.run()
-                print(stats)
 
             # increment global step
             self.total_env_steps += 1
 
         # end task
-        if is_task_aware:
-            self.agent.end_task(id)
+        self.agent.end_task(id)
 
     def run(self):
         for id, task in enumerate(self.env.seq_tasks):

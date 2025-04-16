@@ -27,7 +27,6 @@ agent:
     type: random
 
 algorithm:
-    is_task_aware: True
     ## Trainer ##
     max_steps: 400
     # replay buffer
