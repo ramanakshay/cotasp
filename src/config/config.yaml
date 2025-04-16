@@ -23,3 +23,22 @@ environment:
     type: deterministic
     normalize_reward: True
 
+agent:
+    type: random
+
+algorithm:
+    max_steps: 400
+    # replay buffer
+    buffer_size: 200
+    batch_size: 5
+    # training
+    start_training: 100
+    train_interval: 1
+    train_updates: 1
+    # evaluation
+    eval_interval: 20
+    eval_episodes: 10
+
+
+
+

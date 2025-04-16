@@ -1,3 +1,3 @@
 __all__ = ['TaskTrainer']
 
-from .trainer import TaskTrainer
+from algorithm.trainer import TaskTrainer

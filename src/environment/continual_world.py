@@ -114,9 +114,6 @@ class RandomizationWrapper(gym.Wrapper):
         return self.env.reset(**kwargs)
 
 class ContinualWorld:
-    obs_space = 39
-    act_space = 4
-
     def __init__(self, config):
         self.config = config.environment
         self.seq = self.config.seq
@@ -124,6 +121,11 @@ class ContinualWorld:
         self.normalize_reward = self.config.normalize_reward
         self.seed = config.system.seed
         self.seq_tasks = TASK_SEQS[self.seq]
+
+        # same observation and action spaces for all tasks
+        env = self.get_single_env('pick-place-v2')  # sample any environment
+        self.observation_space = env.observation_space
+        self.action_space = env.action_space
 
     def get_subtasks(self, name: str) -> List[metaworld.Task]:
         # TODO: what are subtasks?
