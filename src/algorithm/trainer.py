@@ -1,6 +1,8 @@
 from algorithm.replay_buffer import ReplayBuffer
 from algorithm.evaluator import TaskEvaluator
 
+import numpy as np
+
 class TaskTrainer:
     def __init__(self, env, agent, config):
         self.config = config.algorithm
@@ -19,7 +21,6 @@ class TaskTrainer:
 
     def run_task(self, id, task, hint):
         max_steps = self.config.max_steps
-        is_task_aware = self.config.is_task_aware
         print(f'Learning on task {id}: {task} for {max_steps} steps')
         env = self.env.get_single_env(task)
         self.replay_buffer.reset()
@@ -37,10 +38,10 @@ class TaskTrainer:
                 else:
                     # choose random previous task (uniform prev strategy)
                     rand_id = np.random.choice(id)
-                    action = agent.sample_action(obs, rand_id)
+                    action = self.agent.sample_action(obs, rand_id)
                     action = np.asarray(action, dtype=np.float32).flatten()
             else:
-                action = agent.sample_actions(obs, id)
+                action = self.agent.sample_action(obs, id)
                 action = np.asarray(action, dtype=np.float32).flatten()
 
             # take step

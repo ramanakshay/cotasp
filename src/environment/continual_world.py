@@ -3,10 +3,7 @@ import random
 import gymnasium as gym
 import metaworld
 import numpy as np
-from gymnasium.wrappers import TimeLimit
-
-# from jaxrl import wrappers
-# from jaxrl.wrappers.normalization import RescaleReward
+from gymnasium.wrappers import TimeLimit, TransformReward, ClipAction
 
 def get_mt50() -> metaworld.MT50:
     saved_random_state = np.random.get_state()
@@ -110,14 +107,13 @@ class RandomizationWrapper(gym.Wrapper):
                 self.reset_space_low, self.reset_space_high, size=self.reset_space_low.size
             )
             self.env._last_rand_vec = rand_vec
-
         return self.env.reset(**kwargs)
 
 class ContinualWorld:
     def __init__(self, config):
         self.config = config.environment
         self.seq = self.config.seq
-        self.type = self.config.type
+        self.randomization = self.config.randomization
         self.normalize_reward = self.config.normalize_reward
         self.seed = config.system.seed
         self.seq_tasks = TASK_SEQS[self.seq]
@@ -140,12 +136,12 @@ class ContinualWorld:
         else:
             env = MT50.train_classes[name]()
             env.seed(self.seed)
-            env = RandomizationWrapper(env, self.get_subtasks(name), self.type)
+            env = RandomizationWrapper(env, self.get_subtasks(name), self.randomization)
             env = TimeLimit(env, META_WORLD_TIME_HORIZON)
-        env = gym.wrappers.ClipAction(env)
+        env = ClipAction(env)
+        if self.normalize_reward:
+            env = TransformReward(env, lambda r: r / META_WORLD_TIME_HORIZON)
         env.name = name
-        # if normalize_reward:
-        #     env = RescaleReward(env, reward_scale=1.0 / META_WORLD_TIME_HORIZON)
         return env
 
 
