@@ -21,8 +21,8 @@ class TaskTrainer:
 
 
     def run_task(self, id, task, hint):
-        # wandb metrics
-        wandb.define_metric('local_step', overwrite=True)
+        # wandb metrics - task training
+        wandb.define_metric('local_step', overwrite=False)
         wandb.define_metric(f'Training/{task}/*', step_metric='local_step')
 
         max_steps = self.config.max_steps
@@ -58,12 +58,11 @@ class TaskTrainer:
             # add to buffer
             self.replay_buffer.insert(obs, action, reward, float(done), next_obs)
 
-            # repeat
+            # repeat or reset environment
             obs = next_obs
             if done:
                 # episodic returns for task
-                wandb.log({'local_step': i}, commit=False)
-                wandb.log({f'Training/{task}/eps_r': eps_r})
+                wandb.log({f'Training/{task}/eps_r': eps_r}, commit=False)
                 obs, info = env.reset()
                 eps_r = 0.0
 
@@ -76,9 +75,14 @@ class TaskTrainer:
             # evaluate
             if i % self.config.eval_interval == 0:
                 stats = self.evaluator.run()
-                wandb.log({'global_step': self.total_env_steps}, commit=False)
-                wandb.log({f'Evaluation/{k}': v for k, v in stats.items()})
+                wandb.log({f'Evaluation/{k}': v for k, v in stats.items()}, commit=False)
                 print(f"global step {self.total_env_steps} | local_step {i} | eval: success - {stats['avg_success']}, return - {stats['avg_return']}")
+
+            # logging steps and commit
+            wandb.log({
+                'global_step': self.total_env_steps,
+                'local_step': i
+                })
 
             # increment global step
             self.total_env_steps += 1
@@ -87,8 +91,10 @@ class TaskTrainer:
         self.agent.end_task(id)
 
     def run(self):
+        # wandb metrics - evaluator
         wandb.define_metric('global_step')
         wandb.define_metric('Evaluation/*', step_metric='global_step')
+
         for id, task in enumerate(self.env.seq_tasks):
             task, hint = task['task'], task['hint']
             self.run_task(id, task, hint)
