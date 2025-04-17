@@ -63,7 +63,7 @@ class TaskEvaluator:
             # stats[f'{task_i}-{env.name}/check_dummy_action'] = agent.sample_actions(dummy_obs, task_i, temperature=0).mean()
 
         stats['avg_return'] = sum_return / len(self.eval_envs)
-        stats['test/deterministic/average_success'] = sum_success / len(self.eval_envs)
+        stats['avg_success'] = sum_success / len(self.eval_envs)
 
         return stats
 

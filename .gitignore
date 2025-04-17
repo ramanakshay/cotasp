@@ -175,3 +175,4 @@ cython_debug/
 
 # logging
 src/outputs/
+src/wandb/

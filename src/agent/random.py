@@ -14,7 +14,7 @@ class RandomAgent(TaskAgent):
         pass
 
     def update(self, id, batch):
-        pass
+        return {}
 
     def sample_action(self, id, obs):
         return self.action_space.sample()
