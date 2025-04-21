@@ -1,5 +1,6 @@
 defaults:
   - _self_
+  - agent: sac
   - override hydra/hydra_logging: disabled
   - override hydra/job_logging: disabled
 
@@ -11,34 +12,34 @@ hydra:
 
 # wandb config
 wandb:
-    entity: ramanakshay-personal
+    entity: embodied-learning-course-project
     project: continual-learning
-    name: full-test
+    name: null
     mode: online
 
 # system
 system:
-    seed: 42
+    seed: 66
 
 # continual world config
 environment:
-    seq: cw10
-    randomization: random_init_all
-    normalize_reward: True
+    seq: cw2-ab-reach
+    randomization: deterministic
+    normalize_reward: False
 
-agent:
-    type: random
-
-algorithm:
-    ## Trainer ##
-    max_steps: 1000000
-    # replay buffer
-    buffer_size: 1000000
+# replay buffer
+data:
+    buffer_size: ${algorithm.max_steps}
     batch_size: 256
+
+# trainer
+algorithm:
+    max_steps: 1000000
+    # training
     start_training: 10000
     train_interval: 1
     train_updates: 1
-    ## Evaluator ##
+    # evaluation
     eval_interval: 20000
     eval_episodes: 10
 

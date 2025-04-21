@@ -31,7 +31,7 @@ def setup(config):
 def cleanup():
     wandb.finish()
 
-@hydra.main(version_base=None, config_path="config", config_name="config")
+@hydra.main(version_base=None, config_path="config", config_name="train_sac")
 def main(config : DictConfig) -> None:
     ## SETUP ##
     setup(config)

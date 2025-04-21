@@ -1,5 +1,6 @@
-from algorithm.replay_buffer import ReplayBuffer
+from data.replay_buffer import ReplayBuffer
 from algorithm.evaluator import TaskEvaluator
+from gymnasium.wrappers import RecordEpisodeStatistics
 
 import numpy as np
 import wandb
@@ -10,10 +11,11 @@ class TaskTrainer:
         self.agent = agent
         self.env = env
 
+        self.buffer_size = config.data.buffer_size
+        self.batch_size = config.data.batch_size
         self.replay_buffer = ReplayBuffer(
             self.env.observation_space, self.env.action_space,
-            self.config.buffer_size, self.config.batch_size
-        )
+            self.buffer_size)
 
         self.evaluator = TaskEvaluator(env, agent, config)
 
@@ -28,49 +30,63 @@ class TaskTrainer:
         max_steps = self.config.max_steps
         print(f'Learning on task {id}: {task} for {max_steps} steps')
         env = self.env.get_single_env(task)
+        env = RecordEpisodeStatistics(env, buffer_length=1) # to record episode return
+
+        # reset replay buffer
         self.replay_buffer.reset()
 
         # start task
         self.agent.start_task(id, hint)
 
         obs, info = env.reset()  # Reset environment
-        eps_r = 0.0
         for i in range(max_steps):
             # sample action
             if (i < self.config.start_training):
+                action = self.env.action_space.sample()
                 # initial exploration strategy proposed in ClonEX-SAC
-                if id == 0:
-                    action = self.env.action_space.sample()
-                else:
-                    # choose random previous task (uniform prev strategy)
-                    rand_id = np.random.choice(id)
-                    action = self.agent.sample_action(obs, rand_id)
-                    action = np.asarray(action, dtype=np.float32).flatten()
+                # if id == 0:
+                #     action = self.env.action_space.sample()
+                # else:
+                #     # choose random previous task (uniform prev strategy)
+                #     rand_id = np.random.choice(id)
+                #     action = self.agent.sample_action(obs[np.newaxis], rand_id)
+                #     action = np.asarray(action, dtype=np.float32).flatten()
             else:
-                action = self.agent.sample_action(obs, id)
+                action = self.agent.sample_action(obs[np.newaxis], id)
                 action = np.asarray(action, dtype=np.float32).flatten()
 
             # take step
             next_obs, reward, terminated, truncated, info = env.step(action)
-            eps_r += reward
             done = terminated or truncated
 
             # add to buffer
-            self.replay_buffer.insert(obs, action, reward, float(done), next_obs)
+            self.replay_buffer.insert(
+                dict(
+                    observations=obs,
+                    actions=action,
+                    rewards=reward,
+                    masks=float(not terminated),
+                    dones=float(done),
+                    next_observations=next_obs,
+                ))
 
             # repeat or reset environment
             obs = next_obs
             if done:
-                # episodic returns for task
-                wandb.log({f'Training/{task}/eps_r': eps_r}, commit=False)
+                # episodic stats for task
+                for k, v in info["episode"].items():
+                    decode = {"r": "return", "l": "length", "t": "time"}
+                    wandb.log({f"Training/{id}-{task}/{decode[k]}": v}, commit=False)
                 obs, info = env.reset()
-                eps_r = 0.0
 
             # train
             if (i >= self.config.start_training) and (i % self.config.train_interval == 0):
                 for _ in range(self.config.train_updates):
-                    batch = self.replay_buffer.sample()
+                    batch = self.replay_buffer.sample(self.batch_size)
                     update_info = self.agent.update(batch, id)
+                # wandb.log({'Agent/actor_loss': update_info['actor_loss'],
+                #            'Agent/critic_loss': update_info['critic_loss'],
+                #            'Agent/temp_loss': update_info['temp_loss']}, commit=False)
 
             # evaluate
             if i % self.config.eval_interval == 0:
@@ -94,6 +110,7 @@ class TaskTrainer:
         # wandb metrics - evaluator
         wandb.define_metric('global_step')
         wandb.define_metric('Evaluation/*', step_metric='global_step')
+        # wandb.define_metric('Agent/*', step_metric='global_step')
 
         for id, task in enumerate(self.env.seq_tasks):
             task, hint = task['task'], task['hint']

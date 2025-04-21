@@ -1,5 +1,12 @@
 git+https://github.com/Farama-Foundation/Metaworld.git@master#egg=metaworld
 gymnasium
-"gymnasium[other]"
+gymnasium[other]
 hydra-core
 wandb
+jax
+jax[cuda12]
+flax
+optax
+scikit-learn
+tensorflow-probability
+sentence-transformers

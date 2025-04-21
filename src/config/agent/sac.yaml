@@ -1,0 +1,23 @@
+type: sac
+optimizer:
+    optim_algo: adam
+    max_norm: -1.0
+    clip_method: null
+    opt_kargs:
+        learning_rate: 3e-4
+actor:
+    hidden_dims: [1024, 1024, 1024, 1024]
+    name_activation: leaky_relu
+    use_layer_norm: True                   # unadjustable
+    final_fc_init_scale: 1e-3               # unadjustable
+    clip_mean: 1.0                          # unadjustable
+    state_dependent_std: True
+critic:
+    hidden_dims: [256, 256, 256, 256]
+    name_activation: leaky_relu
+    use_layer_norm: True                   # unadjustable
+init_temperature: 1.0
+target_entropy: -4.0  # if null, set to -action_dim
+target_update_period: 1
+tau: 0.005 # target network control
+discount: 0.99 # discount factor
