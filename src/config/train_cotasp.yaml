@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - agent: sac
+  - agent: cotasp
   - override hydra/hydra_logging: disabled
   - override hydra/job_logging: disabled
 
@@ -14,8 +14,8 @@ hydra:
 wandb:
     entity: embodied-learning-course-project
     project: continual-learning
-    name: sac_cw10
-    mode: online
+    name: null
+    mode: offline
 
 # system
 system:
@@ -23,7 +23,7 @@ system:
 
 # continual world config
 environment:
-    seq: cw10
+    seq: cw2-test
     randomization: deterministic
     normalize_reward: False
 

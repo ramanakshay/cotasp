@@ -117,12 +117,14 @@ class ContinualWorld:
         self.normalize_reward = self.config.normalize_reward
         self.seed = config.system.seed + 42
         self.seq_tasks = TASK_SEQS[self.seq]
-
+        self.num_tasks = len(self.seq_tasks)
+        
         # same observation and action spaces for all tasks
         env = self.get_single_env('pick-place-v2')  # sample any environment
         self.observation_space = env.observation_space
         self.action_space = env.action_space
         del env # delete temporary environment
+
 
     def get_subtasks(self, name: str) -> List[metaworld.Task]:
         # TODO: what are subtasks?

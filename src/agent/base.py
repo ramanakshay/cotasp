@@ -21,7 +21,7 @@ class TaskAgent:
         '''
         raise NotImplementedError('Not implemented `update` method for agent.')
 
-    def sample_action(self, obs, id=None):
+    def sample_actions(self, obs, id=None):
         '''
             Given task-id and current observation, predict action
         '''

@@ -1,6 +1,6 @@
 from environment import ContinualWorld
 from algorithm import TaskTrainer
-from agent.sac import SACAgent
+from agent.cotasp import CoTASPAgent
 
 import gymnasium as gym
 import random
@@ -31,7 +31,7 @@ def setup(config):
 def cleanup():
     wandb.finish()
 
-@hydra.main(version_base=None, config_path="config", config_name="train_sac")
+@hydra.main(version_base=None, config_path="config", config_name="train_cotasp")
 def main(config : DictConfig) -> None:
     ## SETUP ##
     setup(config)
@@ -41,14 +41,14 @@ def main(config : DictConfig) -> None:
     print("Environment Loaded.")
 
     ## AGENT ##
-    agent = SACAgent(env.observation_space, env.action_space, config)
+    agent = CoTASPAgent(env.observation_space, env.action_space, env.num_tasks, config)
     print('Agent Created.')
 
     ## ALGORITHM ##
-    print('Algorithm Running.')
-    alg = TaskTrainer(env, agent, config)
-    alg.run()
-    print('Done!')
+    # print('Algorithm Running.')
+    # alg = TaskTrainer(env, agent, config)
+    # alg.run()
+    # print('Done!')
 
     ## CLEANUP ##
     cleanup()

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name=sac-3
+#SBATCH --job-name=sac-cw10
 #SBATCH --cpus-per-task=1
-#SBATCH --time=04:00:00
+#SBATCH --time=24:00:00
 #SBATCH --gres=gpu:1
 #SBATCH --mem=64GB
 #SBATCH --account=pr_95_tandon_priority
-#SBATCH --output=sac_3.log
-#SBATCH --error=sac_3_err.log
+#SBATCH --output=sac_cw10.log
+#SBATCH --error=sac_cw10_err.log
 
 module purge
 

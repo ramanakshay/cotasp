@@ -6,6 +6,7 @@ wandb
 jax
 jax[cuda12]
 flax
+distrax
 optax
 scikit-learn
 tensorflow-probability

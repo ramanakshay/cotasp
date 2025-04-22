@@ -24,7 +24,6 @@ class TaskTrainer:
 
     def run_task(self, id, task, hint):
         # wandb metrics - task training
-        wandb.define_metric('local_step', overwrite=False)
         wandb.define_metric(f'Training/{task}/*', step_metric='local_step')
 
         max_steps = self.config.max_steps
@@ -52,7 +51,7 @@ class TaskTrainer:
                 #     action = self.agent.sample_action(obs[np.newaxis], rand_id)
                 #     action = np.asarray(action, dtype=np.float32).flatten()
             else:
-                action = self.agent.sample_action(obs[np.newaxis], id)
+                action = self.agent.sample_actions(obs, id)
                 action = np.asarray(action, dtype=np.float32).flatten()
 
             # take step
@@ -66,7 +65,7 @@ class TaskTrainer:
                     actions=action,
                     rewards=reward,
                     masks=float(not terminated),
-                    dones=float(done),
+                    dones=done,
                     next_observations=next_obs,
                 ))
 
@@ -74,9 +73,9 @@ class TaskTrainer:
             obs = next_obs
             if done:
                 # episodic stats for task
-                for k, v in info["episode"].items():
-                    decode = {"r": "return", "l": "length", "t": "time"}
-                    wandb.log({f"Training/{id}-{task}/{decode[k]}": v}, commit=False)
+                wandb.log({f"Training/{id}-{task}/return": info["episode"]['r'],
+                           f"Training/{id}-{task}/length": info["episode"]['l'],
+                           f"Training/{id}-{task}/time": info["episode"]['t']}, commit=False)
                 obs, info = env.reset()
 
             # train
@@ -84,9 +83,9 @@ class TaskTrainer:
                 for _ in range(self.config.train_updates):
                     batch = self.replay_buffer.sample(self.batch_size)
                     update_info = self.agent.update(batch, id)
-                # wandb.log({'Agent/actor_loss': update_info['actor_loss'],
-                #            'Agent/critic_loss': update_info['critic_loss'],
-                #            'Agent/temp_loss': update_info['temp_loss']}, commit=False)
+                wandb.log({'Agent/actor_loss': update_info['actor_loss'],
+                           'Agent/critic_loss': update_info['critic_loss'],
+                           'Agent/temperature_loss': update_info['temperature_loss']}, commit=False)
 
             # evaluate
             if i % self.config.eval_interval == 0:
@@ -108,9 +107,10 @@ class TaskTrainer:
 
     def run(self):
         # wandb metrics - evaluator
+        wandb.define_metric('local_step')
         wandb.define_metric('global_step')
         wandb.define_metric('Evaluation/*', step_metric='global_step')
-        # wandb.define_metric('Agent/*', step_metric='global_step')
+        wandb.define_metric('Agent/*', step_metric='global_step')
 
         for id, task in enumerate(self.env.seq_tasks):
             task, hint = task['task'], task['hint']
