@@ -3,7 +3,7 @@ gymnasium
 gymnasium[other]
 hydra-core
 wandb
-jax
+jax==0.5.1
 jax[cuda12]
 flax
 distrax

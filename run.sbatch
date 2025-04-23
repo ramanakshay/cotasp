@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name=sac-cw10
+#SBATCH --job-name=cotasp-cwtest1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=24:00:00
-#SBATCH --gres=gpu:1
+#SBATCH --time=4:00:00
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --mem=64GB
 #SBATCH --account=pr_95_tandon_priority
-#SBATCH --output=sac_cw10.log
-#SBATCH --error=sac_cw10_err.log
+#SBATCH --output=cotasp_cwtest1.log
+#SBATCH --error=cotasp_cwtest1_err.log
 
 module purge
 
@@ -18,5 +18,5 @@ singularity exec \
 source /ext3/env.sh;
 conda activate cw-env;
 cd /scratch/ar8692/continual-learning/src/;
-python train_sac.py
+python train_cotasp.py
 "

@@ -1,4 +1,4 @@
-__all__ = ['MetaPolicy', 'update_actor']
+__all__ = ['MetaPolicy', 'update_theta', 'update_alpha']
 
 from .actor import MetaPolicy
-from .updater import update_actor
+from .updater import update_theta, update_alpha

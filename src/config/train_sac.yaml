@@ -14,7 +14,7 @@ hydra:
 wandb:
     entity: embodied-learning-course-project
     project: continual-learning
-    name: sac_cw10
+    name: null
     mode: online
 
 # system

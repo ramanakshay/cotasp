@@ -1,4 +1,5 @@
 import copy
+import itertools
 import functools
 from typing import Dict, Optional, Sequence, Tuple, Callable
 from flax.core.frozen_dict import FrozenDict
@@ -11,9 +12,79 @@ import distrax
 import numpy as np
 import jax.numpy as jnp
 from agent.base import TaskAgent
-from agent.cotasp.actor import MetaPolicy, update_actor
-from agent.sac.critic import StateActionEnsemble, update_critic, soft_target_update
-from agent.sac.temp import Temperature, update_temperature
+from agent.cotasp.actor import MetaPolicy, update_theta, update_alpha
+from agent.cotasp.critic import StateActionEnsemble, update_critic, soft_target_update
+from agent.cotasp.temp import Temperature, update_temperature
+from sentence_transformers import SentenceTransformer
+
+@functools.partial(jax.jit, static_argnames="actor_apply_fn")
+def sample_actions_jit(
+        rng: PRNGKey,
+        actor_apply_fn: Callable[..., distrax.Distribution],
+        actor_params: Params,
+        observations: np.ndarray,
+        task_id: jnp.ndarray
+) -> Tuple[PRNGKey, jnp.ndarray]:
+    dist = actor_apply_fn({"params": actor_params}, observations, task_id)
+    rng, key = jax.random.split(rng)
+    return rng, dist.sample(seed=key)
+
+
+@functools.partial(jax.jit, static_argnames=("backup_entropy", "critic_reduction"))
+def _update_cotasp_jit(
+        rng: PRNGKey,
+        actor: TrainState,
+        critic: TrainState,
+        target_critic_params: Params,
+        temp: TrainState,
+        batch: FrozenDict,
+        task_id: jnp.ndarray,
+        optimize_alpha: bool,
+        discount: float,
+        tau: float,
+        target_entropy: float,
+        backup_entropy: bool,
+        critic_reduction: str,
+) -> Tuple[PRNGKey, TrainState, TrainState, Params, TrainState, Dict[str, float]]:
+
+    rng, key = jax.random.split(rng)
+    target_critic = critic.replace(params=target_critic_params)
+    new_critic, critic_info = update_critic(
+        key,
+        actor,
+        critic,
+        target_critic,
+        temp,
+        batch,
+        task_id,
+        discount,
+        backup_entropy,
+        critic_reduction,
+    )
+
+    new_target_critic_params = soft_target_update(
+        new_critic.params, target_critic_params, tau
+    )
+
+    rng, key = jax.random.split(rng)
+    new_actor, actor_info = jax.lax.cond(
+        optimize_alpha,
+        update_alpha,
+        update_theta,
+        key, actor, new_critic, temp, batch, task_id
+    )
+    new_temp, alpha_info = update_temperature(
+        temp, actor_info["entropy"], target_entropy
+    )
+
+    return (
+        rng,
+        new_actor,
+        new_critic,
+        new_target_critic_params,
+        new_temp,
+        {**critic_info, **actor_info, **alpha_info},
+    )
 
 class CoTASPAgent(TaskAgent):
     def __init__(self, observation_space, action_space, num_tasks, config):
@@ -50,7 +121,13 @@ class CoTASPAgent(TaskAgent):
             params=actor_params,
             tx=optax.adam(learning_rate=actor_configs.learning_rate),
         )
-        self_actor = actor
+
+        # dictionary
+        # alphas = {}
+        # for i, h in enumerate(actor_configs.hidden_dims):
+        #     alphas[f'embeds_bb_{i}'] = DictionaryLearner(
+        #         ...
+        #     )
 
         # critic
         critic_configs = self.config.critic
@@ -78,3 +155,56 @@ class CoTASPAgent(TaskAgent):
         self._target_critic_params = target_critic_params
         self._temp = temp
         self._rng = rng
+
+        # self.alphas = alphas
+        self.task_embeddings = []
+        self.task_encoder = SentenceTransformer('all-MiniLM-L12-v2')
+        self.schedule = itertools.cycle([False]*self.config.theta_steps + [True]*self.config.alpha_steps)
+        self.update_alpha = self.config.update_alpha
+
+    def sample_actions(self, batch: np.ndarray, id: int) -> np.ndarray:
+        rng, actions = sample_actions_jit(
+            self._rng, self._actor.apply_fn, self._actor.params, batch, jnp.array([id])
+        )
+        self._rng = rng
+        return np.asarray(actions)
+
+    def update(self, batch: FrozenDict, id: int) -> Dict[str, float]:
+        optimize_alpha = next(schedule) if self.update_alpha else False
+
+        (
+        new_rng,
+        new_actor,
+        new_critic,
+        new_target_critic_params,
+        new_temp,
+        info,
+            ) = _update_cotasp_jit(
+                self._rng,
+                self._actor,
+                self._critic,
+                self._target_critic_params,
+                self._temp,
+                batch,
+                jnp.array([id]),
+                optimize_alpha,
+                self.discount,
+                self.tau,
+                self.target_entropy,
+                self.backup_entropy,
+                self.critic_reduction,
+            )
+
+        self._rng = new_rng
+        self._actor = new_actor
+        self._critic = new_critic
+        self._target_critic_params = new_target_critic_params
+        self._temp = new_temp
+
+        return info
+
+    def start_task(self, id, hint):
+        pass
+
+    def end_task(self, id):
+        pass

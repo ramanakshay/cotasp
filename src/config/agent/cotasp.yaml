@@ -8,6 +8,9 @@ critic:
 temperature:
     init_temperature: 1.0
     learning_rate: 3e-4
+theta_steps: 990
+alpha_steps: 10
+update_alpha: False # overrides ratio
 target_entropy: null
 backup_entropy: False
 critic_reduction: min

@@ -14,8 +14,8 @@ hydra:
 wandb:
     entity: embodied-learning-course-project
     project: continual-learning
-    name: null
-    mode: offline
+    name: cotasp_test_basic
+    mode: online
 
 # system
 system:

@@ -45,10 +45,10 @@ def main(config : DictConfig) -> None:
     print('Agent Created.')
 
     ## ALGORITHM ##
-    # print('Algorithm Running.')
-    # alg = TaskTrainer(env, agent, config)
-    # alg.run()
-    # print('Done!')
+    print('Algorithm Running.')
+    alg = TaskTrainer(env, agent, config)
+    alg.run()
+    print('Done!')
 
     ## CLEANUP ##
     cleanup()

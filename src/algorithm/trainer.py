@@ -51,7 +51,7 @@ class TaskTrainer:
                 #     action = self.agent.sample_action(obs[np.newaxis], rand_id)
                 #     action = np.asarray(action, dtype=np.float32).flatten()
             else:
-                action = self.agent.sample_actions(obs, id)
+                action = self.agent.sample_actions(obs[np.newaxis], id)
                 action = np.asarray(action, dtype=np.float32).flatten()
 
             # take step

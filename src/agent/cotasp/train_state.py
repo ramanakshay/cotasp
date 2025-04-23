@@ -110,16 +110,12 @@ class MetaTrainState(struct.PyTreeNode):
         partition_optimizers = {'trainable': tx, 'frozen': optax.set_to_zero()}
 
         # theta optimizer
-        param_theta = freeze(traverse_util.path_aware_map(filter_alpha, params))
+        param_theta = traverse_util.path_aware_map(filter_alpha, params)
         tx_theta = optax.multi_transform(partition_optimizers, param_theta)
         # alpha optimizer
-        param_alpha = freeze(traverse_util.path_aware_map(filter_theta, params))
+        param_alpha = traverse_util.path_aware_map(filter_theta, params)
         tx_alpha = optax.multi_transform(partition_optimizers, param_alpha)
-        print(tx)
-        print(tx_theta)
-        tx_theta = tx_alpha = tx
-
-
+        
         # init optimizer
         opt_state_theta = tx_theta.init(params)
         opt_state_alpha = tx_alpha.init(params)
