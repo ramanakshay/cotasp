@@ -19,7 +19,7 @@ import optax
 
 import jax
 from flax import core, struct, traverse_util
-from flax.core import freeze, unfreeze, FrozenDict
+from flax.core import FrozenDict
 from flax.linen.fp8_ops import OVERWRITE_WITH_GRADIENT
 
 

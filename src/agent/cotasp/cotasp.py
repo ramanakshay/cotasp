@@ -15,6 +15,7 @@ from agent.base import TaskAgent
 from agent.cotasp.actor import MetaPolicy, update_theta, update_alpha
 from agent.cotasp.critic import StateActionEnsemble, update_critic, soft_target_update
 from agent.cotasp.temp import Temperature, update_temperature
+from agent.cotasp.dict_learner import OnlineDictLearnerV2
 from sentence_transformers import SentenceTransformer
 
 @functools.partial(jax.jit, static_argnames="actor_apply_fn")
@@ -103,6 +104,9 @@ class CoTASPAgent(TaskAgent):
         self.tau = self.config.tau
         self.discount = self.config.discount
 
+        self.schedule = itertools.cycle([False]*self.config.theta_steps + [True]*self.config.alpha_steps)
+        self.update_alpha = self.config.update_alpha
+
         # init sample
         observations = observation_space.sample()[np.newaxis]
         actions = action_space.sample()[np.newaxis]
@@ -122,12 +126,22 @@ class CoTASPAgent(TaskAgent):
             tx=optax.adam(learning_rate=actor_configs.learning_rate),
         )
 
+        # task encoder
+        self.task_embeddings = []
+        self.task_encoder = SentenceTransformer('all-MiniLM-L12-v2')
+        embedding_dim = self.task_encoder.get_sentence_embedding_dimension()
+
         # dictionary
-        # alphas = {}
-        # for i, h in enumerate(actor_configs.hidden_dims):
-        #     alphas[f'embeds_bb_{i}'] = DictionaryLearner(
-        #         ...
-        #     )
+        self.dict4layers = {}
+        dict_configs = dict(self.config.dictionary)
+        for i, h in enumerate(actor_configs.hidden_dims):
+            dict_learner = OnlineDictLearnerV2(
+                embedding_dim,
+                h,
+                seed+i+1,
+                None, # whether using svd dictionary initialization
+                **dict_configs)
+            self.dict4layers[f'embeds_bb_{i}'] = dict_learner
 
         # critic
         critic_configs = self.config.critic
@@ -155,12 +169,6 @@ class CoTASPAgent(TaskAgent):
         self._target_critic_params = target_critic_params
         self._temp = temp
         self._rng = rng
-
-        # self.alphas = alphas
-        self.task_embeddings = []
-        self.task_encoder = SentenceTransformer('all-MiniLM-L12-v2')
-        self.schedule = itertools.cycle([False]*self.config.theta_steps + [True]*self.config.alpha_steps)
-        self.update_alpha = self.config.update_alpha
 
     def sample_actions(self, batch: np.ndarray, id: int) -> np.ndarray:
         rng, actions = sample_actions_jit(
@@ -203,8 +211,18 @@ class CoTASPAgent(TaskAgent):
 
         return info
 
-    def start_task(self, id, hint):
-        pass
+    def start_task(self, id: int, hint: str):
+        task_e = self.task_encoder.encode(hint)[np.newaxis, :]
+        self.task_embeddings.append(task_e)
+
+        actor_params = self._actor.params
+        for k in self._actor.params.keys():
+            if k.startswith('embeds'):
+                alpha_l = self.dict4layers[k].get_alpha(task_e)
+                alpha_l = jnp.asarray(alpha_l.flatten())
+                # Replace the i-th row
+                actor_params[k]['embedding'] = actor_params[k]['embedding'].at[id].set(alpha_l)
+        self._actor = self._actor.update_params(actor_params)
 
     def end_task(self, id):
         pass

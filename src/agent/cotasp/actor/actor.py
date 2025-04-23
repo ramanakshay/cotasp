@@ -87,12 +87,12 @@ class MetaPolicy(nn.Module):
     def setup(self):
         # TODO: do we really need setup?
         self.backbones = [nn.Dense(h, kernel_init=default_init()) for h in self.hidden_dims]
-        self.embeds_bb = [nn.Embed(self.num_tasks, h, embedding_init=ones_init()) for h in self.hidden_dims]
+        self.embeds_bb = [nn.Embed(self.num_tasks, h, embedding_init=default_init()) for h in self.hidden_dims]
         self.means_layer = nn.Dense(self.action_dim, kernel_init=default_init())
         self.log_stds_layer = nn.Dense(self.action_dim, kernel_init=default_init())
 
     def __call__(
-            self, observations: jnp.ndarray, task_ids: jnp.ndarray, training: bool = False
+            self, observations: jnp.ndarray, task_id: jnp.ndarray, training: bool = False
         ) -> distrax.Distribution:
         x = _flatten_dict(observations)
         for i, layer in enumerate(self.backbones):
@@ -100,7 +100,7 @@ class MetaPolicy(nn.Module):
             x = layer(x)
 
             # apply mask
-            phi = ste_step_fn(self.embeds_bb[i](task_ids))
+            phi = ste_step_fn(self.embeds_bb[i](task_id))
             mask = jnp.broadcast_to(phi, x.shape)
             x *= mask
 

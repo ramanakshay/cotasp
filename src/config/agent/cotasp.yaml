@@ -8,6 +8,12 @@ critic:
 temperature:
     init_temperature: 1.0
     learning_rate: 3e-4
+dictionary:
+    c: 1.0
+    alpha: 1e-3
+    method: lasso_lars
+    positive_code: False
+    scale_code: False
 theta_steps: 990
 alpha_steps: 10
 update_alpha: False # overrides ratio
