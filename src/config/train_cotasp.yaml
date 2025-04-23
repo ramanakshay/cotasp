@@ -14,7 +14,7 @@ hydra:
 wandb:
     entity: embodied-learning-course-project
     project: continual-learning
-    name: cotasp_sparse
+    name: cotasp_final_small
     mode: online
 
 # system
@@ -23,7 +23,7 @@ system:
 
 # continual world config
 environment:
-    seq: cw2-test
+    seq: cw10
     randomization: deterministic
     normalize_reward: False
 

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name=cotasp-sparse1
+#SBATCH --job-name=cotasp_final_small
 #SBATCH --cpus-per-task=1
-#SBATCH --time=4:00:00
-#SBATCH --gres=gpu:1
+#SBATCH --time=20:00:00
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --mem=64GB
 #SBATCH --account=pr_95_tandon_priority
-#SBATCH --output=cotasp_sparse1.log
-#SBATCH --error=cotasp_sparse_err1.log
+#SBATCH --output=cotasp_final_small.log
+#SBATCH --error=cotasp_final_small_err.log
 
 module purge
 

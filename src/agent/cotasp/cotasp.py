@@ -3,8 +3,7 @@ import itertools
 import functools
 from typing import Dict, Optional, Sequence, Tuple, Callable
 from flax.core.frozen_dict import FrozenDict
-from flax.training.train_state import TrainState
-from agent.cotasp.train_state import MetaTrainState
+from agent.cotasp.train_state import TrainState, MetaTrainState
 from data.types import Params, PRNGKey
 import jax
 import optax
@@ -105,12 +104,15 @@ class CoTASPAgent(TaskAgent):
         self.discount = self.config.discount
 
         self.schedule = itertools.cycle([False]*self.config.theta_steps + [True]*self.config.alpha_steps)
-        self.update_alpha = self.config.update_alpha
+        self.update_dict = self.config.update_dict
 
         # init sample
         observations = observation_space.sample()[np.newaxis]
         actions = action_space.sample()[np.newaxis]
         task_ids = jnp.array([0])
+
+        self.dummy_o = observations
+        self.dummy_a = actions
 
         seed = config.system.seed
         rng = jax.random.PRNGKey(seed)
@@ -178,7 +180,7 @@ class CoTASPAgent(TaskAgent):
         return np.asarray(actions)
 
     def update(self, batch: FrozenDict, id: int) -> Dict[str, float]:
-        optimize_alpha = next(schedule) if self.update_alpha else False
+        optimize_alpha = next(self.schedule) if self.update_dict else False
 
         (
         new_rng,
@@ -224,5 +226,55 @@ class CoTASPAgent(TaskAgent):
                 actor_params[k]['embedding'] = actor_params[k]['embedding'].at[id].set(alpha_l)
         self._actor = self._actor.update_params(actor_params)
 
-    def end_task(self, id):
-        pass
+    def reset_agent(self):
+        # re-initialize params of critic ,target_critic and temperature
+        self._rng, critic_key, temp_key = jax.random.split(self._rng, 3)
+
+        # critic
+        critic_configs = self.config.critic
+        critic_def = StateActionEnsemble(critic_configs.hidden_dims, num_qs=2)
+        critic_params = critic_def.init(critic_key, observations, actions)["params"]
+        self._critic = TrainState.create(
+            apply_fn=critic_def.apply,
+            params=critic_params,
+            tx=optax.adam(learning_rate=critic_configs.learning_rate),
+        )
+        self._target_critic_params = copy.deepcopy(critic_params)
+
+        #  Temperature
+        temp_configs = self.config.temperature
+        temp_def = Temperature(temp_configs.init_temperature)
+        temp_params = temp_def.init(temp_key)["params"]
+        self._temp = TrainState.create(
+            apply_fn=temp_def.apply,
+            params=temp_params,
+            tx=optax.adam(learning_rate=temp_configs.learning_rate),
+        )
+
+        # reset optimizer
+        self._actor = self._actor.reset_optimizer()
+
+    def end_task(self, id: int):
+        if self.update_dict:
+            for k in self._actor.params.keys():
+                if k.startswith('embeds'):
+                    optimal_alpha_l = self._actor.params[k]['embedding'][task_id]
+                    optimal_alpha_l = np.array([optimal_alpha_l.flatten()])
+                    task_e = self.task_embeddings[task_id]
+                    # online update dictionary via CD
+                    self.dict4layers[k].update_dict(optimal_alpha_l, task_e)
+                    dict_stats[k] = {
+                        'sim_mat': self.dict4layers[k]._compute_overlapping(),
+                        'change_of_d': np.array(self.dict4layers[k].change_of_dict)
+                    }
+        else:
+            for k in self._actor.params.keys():
+                if k.startswith('embeds'):
+                    dict_stats[k] = {
+                        'sim_mat': self.dict4layers[k]._compute_overlapping(),
+                        'change_of_d': 0
+                    }
+
+        self.reset_agent()
+
+        return dict_stats

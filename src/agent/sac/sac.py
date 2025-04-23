@@ -2,7 +2,6 @@ import copy
 import functools
 from typing import Dict, Optional, Sequence, Tuple, Callable
 from flax.core.frozen_dict import FrozenDict
-from flax.training.train_state import TrainState
 from data.types import Params, PRNGKey
 import jax
 import optax
@@ -10,6 +9,7 @@ import distrax
 import numpy as np
 import jax.numpy as jnp
 from agent.base import TaskAgent
+from agent.sac.train_state import TrainState
 from agent.sac.actor import NormalTanhPolicy, update_actor
 from agent.sac.critic import StateActionEnsemble, update_critic, soft_target_update
 from agent.sac.temp import Temperature, update_temperature
@@ -173,5 +173,33 @@ class SACAgent(TaskAgent):
     def start_task(self, id, hint):
         pass
 
+    def reset_agent(self):
+        # re-initialize params of critic ,target_critic and temperature
+        self._rng, critic_key, temp_key = jax.random.split(self._rng, 3)
+
+        # critic
+        critic_configs = self.config.critic
+        critic_def = StateActionEnsemble(critic_configs.hidden_dims, num_qs=2)
+        critic_params = critic_def.init(critic_key, observations, actions)["params"]
+        self._critic = TrainState.create(
+            apply_fn=critic_def.apply,
+            params=critic_params,
+            tx=optax.adam(learning_rate=critic_configs.learning_rate),
+        )
+        self._target_critic_params = copy.deepcopy(critic_params)
+
+        #  Temperature
+        temp_configs = self.config.temperature
+        temp_def = Temperature(temp_configs.init_temperature)
+        temp_params = temp_def.init(temp_key)["params"]
+        self._temp = TrainState.create(
+            apply_fn=temp_def.apply,
+            params=temp_params,
+            tx=optax.adam(learning_rate=temp_configs.learning_rate),
+        )
+
+        # reset optimizer
+        self._actor = self._actor.reset_optimizer()
+
     def end_task(self, id):
-        pass
+        self.reset_agent()
