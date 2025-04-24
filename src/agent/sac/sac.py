@@ -92,6 +92,9 @@ class SACAgent(TaskAgent):
         observations = observation_space.sample()
         actions = action_space.sample()
 
+        self.dummy_o = observations
+        self.dummy_a = actions
+
         seed = config.system.seed
         rng = jax.random.PRNGKey(seed)
         rng, actor_key, critic_key, temp_key = jax.random.split(rng, 4)
@@ -180,7 +183,7 @@ class SACAgent(TaskAgent):
         # critic
         critic_configs = self.config.critic
         critic_def = StateActionEnsemble(critic_configs.hidden_dims, num_qs=2)
-        critic_params = critic_def.init(critic_key, observations, actions)["params"]
+        critic_params = critic_def.init(critic_key, self.dummy_o, self.dummy_a)["params"]
         self._critic = TrainState.create(
             apply_fn=critic_def.apply,
             params=critic_params,

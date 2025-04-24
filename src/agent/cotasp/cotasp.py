@@ -233,7 +233,7 @@ class CoTASPAgent(TaskAgent):
         # critic
         critic_configs = self.config.critic
         critic_def = StateActionEnsemble(critic_configs.hidden_dims, num_qs=2)
-        critic_params = critic_def.init(critic_key, observations, actions)["params"]
+        critic_params = critic_def.init(critic_key, self.dummy_o, self.dummy_a)["params"]
         self._critic = TrainState.create(
             apply_fn=critic_def.apply,
             params=critic_params,
@@ -255,12 +255,13 @@ class CoTASPAgent(TaskAgent):
         self._actor = self._actor.reset_optimizer()
 
     def end_task(self, id: int):
+        dict_stats = {}
         if self.update_dict:
             for k in self._actor.params.keys():
                 if k.startswith('embeds'):
-                    optimal_alpha_l = self._actor.params[k]['embedding'][task_id]
+                    optimal_alpha_l = self._actor.params[k]['embedding'][id]
                     optimal_alpha_l = np.array([optimal_alpha_l.flatten()])
-                    task_e = self.task_embeddings[task_id]
+                    task_e = self.task_embeddings[id]
                     # online update dictionary via CD
                     self.dict4layers[k].update_dict(optimal_alpha_l, task_e)
                     dict_stats[k] = {

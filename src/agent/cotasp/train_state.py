@@ -18,6 +18,8 @@ from collections.abc import Callable
 import optax
 
 import jax
+import jax.numpy as jnp
+from jax.tree_util import tree_map
 from flax import core, struct, traverse_util
 from flax.core import FrozenDict
 from flax.linen.fp8_ops import OVERWRITE_WITH_GRADIENT

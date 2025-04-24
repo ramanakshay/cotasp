@@ -14,7 +14,7 @@ hydra:
 wandb:
     entity: embodied-learning-course-project
     project: continual-learning
-    name: sac_final_test_small
+    name: sac-cw2-ab
     mode: online
 
 # system
@@ -23,7 +23,7 @@ system:
 
 # continual world config
 environment:
-    seq: cw10
+    seq: cw2-ab-handle-press
     randomization: deterministic
     normalize_reward: False
 
@@ -34,14 +34,14 @@ data:
 
 # trainer
 algorithm:
-    max_steps: 1000000
+    max_steps: 300000
     # training
     start_training: 10000
     train_interval: 1
     train_updates: 1
     # evaluation
     eval_interval: 20000
-    eval_episodes: 10
+    eval_episodes: 7
 
 
 
