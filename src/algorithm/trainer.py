@@ -24,6 +24,7 @@ class TaskTrainer:
 
     def run_task(self, id, task, hint):
         # wandb metrics - task training
+        wandb.define_metric('local_step', overwrite=False)
         wandb.define_metric(f'Training/{task}/*', step_metric='local_step')
 
         max_steps = self.config.max_steps
@@ -31,6 +32,7 @@ class TaskTrainer:
         env = self.env.get_single_env(task)
         env = RecordEpisodeStatistics(env, buffer_length=1) # to record episode return
 
+        prev_success = 0.0
         # reset replay buffer
         self.replay_buffer.reset()
 
@@ -73,9 +75,9 @@ class TaskTrainer:
             obs = next_obs
             if done:
                 # episodic stats for task
-                wandb.log({f"Training/{id}-{task}/return": info["episode"]['r'],
-                           f"Training/{id}-{task}/length": info["episode"]['l'],
-                           f"Training/{id}-{task}/time": info["episode"]['t']}, commit=False)
+                wandb.log({f"Training/{id}-{task}/return": info["episode"]['r']}, commit=False)
+                wandb.log({f"Training/{id}-{task}/length": info["episode"]['l']}, commit=False)
+                wandb.log({f"Training/{id}-{task}/time": info["episode"]['t']}, commit=False)
                 obs, info = env.reset()
 
             # train
@@ -90,6 +92,7 @@ class TaskTrainer:
             # evaluate
             if i % self.config.eval_interval == 0:
                 stats = self.evaluator.run()
+                current_success = stats[f'{id}-{task}/success']
                 wandb.log({f'Evaluation/{k}': v for k, v in stats.items()}, commit=False)
                 print(f"global step {self.total_env_steps} | local_step {i} | eval: success - {stats['avg_success']}, return - {stats['avg_return']}")
 
@@ -102,12 +105,15 @@ class TaskTrainer:
             # increment global step
             self.total_env_steps += 1
 
+            if prev_success >= 0.9 and current_success >= 0.9:
+                break
+            prev_success = current_success
+
         # end task
         self.agent.end_task(id)
 
     def run(self):
         # wandb metrics - evaluator
-        wandb.define_metric('local_step')
         wandb.define_metric('global_step')
         wandb.define_metric('Evaluation/*', step_metric='global_step')
         wandb.define_metric('Agent/*', step_metric='global_step')

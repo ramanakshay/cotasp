@@ -105,7 +105,6 @@ class CoTASPAgent(TaskAgent):
 
         self.schedule = itertools.cycle([False]*self.config.theta_steps + [True]*self.config.alpha_steps)
         self.update_dict = self.config.update_dict
-        self.update_coef = self.config.update_coef
 
         # init sample
         observations = observation_space.sample()[np.newaxis]
@@ -181,7 +180,7 @@ class CoTASPAgent(TaskAgent):
         return np.asarray(actions)
 
     def update(self, batch: FrozenDict, id: int) -> Dict[str, float]:
-        optimize_alpha = next(self.schedule) if self.update_coef else False
+        optimize_alpha = next(self.schedule) if self.update_dict else False
 
         (
         new_rng,

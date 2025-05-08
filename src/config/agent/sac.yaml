@@ -1,6 +1,6 @@
 type: sac
 actor:
-    hidden_dims: [1024, 1024, 1024]
+    hidden_dims: [256, 256, 256]
     learning_rate: 3e-4
 critic:
     hidden_dims: [256, 256, 256]

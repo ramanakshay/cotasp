@@ -16,8 +16,9 @@ dictionary:
     scale_code: False
 theta_steps: 990
 alpha_steps: 10
+update_coef: False
 update_dict: True # overrides ratio
-target_entropy: null
+target_entropy: -2.0
 backup_entropy: False
 critic_reduction: min
 tau: 0.005 # target network control

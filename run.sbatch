@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name=sac_ab_test
+#SBATCH --job-name=cotasp-cw10-freeze_alpha
 #SBATCH --cpus-per-task=1
-#SBATCH --time=06:00:00
+#SBATCH --time=14:00:00
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --mem=64GB
 #SBATCH --account=pr_95_tandon_priority
-#SBATCH --output=sac_ab_test.log
-#SBATCH --error=sac_ab_test_err.log
+#SBATCH --output=cotasp-cw10-freeze_alpha.log
+#SBATCH --error=cotasp-cw10-freeze_alpha_err.log
 
 module purge
 
@@ -18,5 +18,5 @@ singularity exec \
 source /ext3/env.sh;
 conda activate cw-env;
 cd /scratch/ar8692/continual-learning/src/;
-python train_sac.py
+python train_cotasp.py
 "

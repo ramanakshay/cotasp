@@ -79,7 +79,7 @@ class MetaPolicy(nn.Module):
     action_dim: int
     num_tasks: int
     dropout_rate: Optional[float] = None
-    log_std_min: Optional[float] = -2
+    log_std_min: Optional[float] = -20
     log_std_max: Optional[float] = 2
     low: Optional[jnp.ndarray] = None
     high: Optional[jnp.ndarray] = None
